@@ -1,5 +1,9 @@
 #![allow(unused)]
 
+use std::time;
+
+use rayon::prelude::*;
+
 use svg::node::element::path::Command;
 use svg::node::element::path::Data;
 use svg::node::element::path::Position;
@@ -111,10 +115,46 @@ impl Artist {
     }
 }
 
+// fn parse(input: &str) -> Vec<Operation> {
+//     let mut steps = Vec::<Operation>::new();
+//     for byte in input.as_bytes() {
+//         let step = match byte {
+//             b'0' => Home,
+//             b'1'..=b'9' => {
+//                 let distance = (byte - 0x30) as isize;
+//                 Forwad(distance * (HEIGHT / 10))
+//             }
+//             b'a' | b'b' | b'c' => TurnLeft,
+//             b'd' | b'e' | b'f' => TurnRight,
+//             _ => Noop(*byte),
+//         };
+
+//         steps.push(step)
+//     }
+//     steps
+// }
+
+// fn parse(input: &str) -> Vec<Operation> {
+//     input
+//         .bytes()
+//         .map(|byte| match byte {
+//             b'0' => Home,
+//             b'1'..=b'9' => {
+//                 let distance = (byte - 0x30) as isize;
+//                 Forwad(distance * (HEIGHT / 10))
+//             }
+//             b'a' | b'b' | b'c' => TurnLeft,
+//             b'd' | b'e' | b'f' => TurnRight,
+//             _ => Noop(byte),
+//         })
+//         .collect()
+// }
+
 fn parse(input: &str) -> Vec<Operation> {
-    let mut steps = Vec::<Operation>::new();
-    for byte in input.as_bytes() {
-        let step = match byte {
+    input
+        .as_bytes()
+        .par_iter()
+        .map(|byte| match byte {
             b'0' => Home,
             b'1'..=b'9' => {
                 let distance = (byte - 0x30) as isize;
@@ -123,11 +163,8 @@ fn parse(input: &str) -> Vec<Operation> {
             b'a' | b'b' | b'c' => TurnLeft,
             b'd' | b'e' | b'f' => TurnRight,
             _ => Noop(*byte),
-        };
-
-        steps.push(step)
-    }
-    steps
+        })
+        .collect()
 }
 
 fn convert(operations: &Vec<Operation>) -> Vec<Command> {
@@ -192,8 +229,11 @@ fn main() {
     let default_filename = format!("{}.svg", input);
     let save_to = args.get(2).unwrap_or(&default_filename);
 
+    let start = time::Instant::now();
     let operations = parse(input);
     let path_data = convert(&operations);
     let document = generate_svg(path_data);
+    let end = time::Instant::now();
+    println!("duration, {:?}", end - start);
     svg::save(save_to, &document).unwrap();
 }
